@@ -38,15 +38,23 @@ export const SakinaWorld: React.FC = () => {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
     const material = new THREE.PointsMaterial({
-      color: 0x34d399,
+      color: 0x60a5fa,
       size: 2.0,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.7,
       blending: THREE.AdditiveBlending,
     });
 
     const particles = new THREE.Points(geometry, material);
     scene.add(particles);
+
+    // Peaceful deep-blue ambient and point lighting
+    const ambientLight = new THREE.AmbientLight(0x0c1b33, 1.2);
+    scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0x3b82f6, 1.8, 300);
+    pointLight.position.set(0, 0, 50);
+    scene.add(pointLight);
 
     let animationFrameId: number;
     let clock = 0;
@@ -92,7 +100,7 @@ export const SakinaWorld: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#02110c] via-[#041d14] to-[#020c08]"
+      className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#020817] via-[#051329] to-[#010612]"
     />
   );
 };
