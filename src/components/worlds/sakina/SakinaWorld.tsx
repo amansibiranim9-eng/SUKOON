@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 /**
- * SakinaWorld - Interactive 3D serenity & stillness environment
+ * SakinaWorld - Deep peaceful atmosphere with serene floating cosmic particles
  */
 export const SakinaWorld: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -10,32 +10,69 @@ export const SakinaWorld: React.FC = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, width / height, 1, 1000);
+    camera.position.z = 100;
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
 
-    camera.position.z = 5;
+    // Deep peaceful floating particles
+    const count = 900;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const driftSpeed = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 400;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 400;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 400;
+      driftSpeed[i] = 0.1 + Math.random() * 0.2;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: 0x34d399,
+      size: 2.0,
+      transparent: true,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const particles = new THREE.Points(geometry, material);
+    scene.add(particles);
 
     let animationFrameId: number;
+    let clock = 0;
+
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
+      clock += 0.008;
+
+      const pos = geometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < count; i++) {
+        pos[i * 3 + 1] += Math.sin(clock + i) * driftSpeed[i] * 0.25;
+        pos[i * 3] += Math.cos(clock * 0.4 + i) * driftSpeed[i] * 0.15;
+      }
+      geometry.attributes.position.needsUpdate = true;
+
+      particles.rotation.y = clock * 0.02;
       renderer.render(scene, camera);
     };
     animate();
 
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(w, h);
     };
 
     window.addEventListener('resize', handleResize);
@@ -43,6 +80,8 @@ export const SakinaWorld: React.FC = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
+      geometry.dispose();
+      material.dispose();
       renderer.dispose();
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement);
@@ -50,5 +89,10 @@ export const SakinaWorld: React.FC = () => {
     };
   }, []);
 
-  return <div ref={containerRef} className="fixed inset-0 pointer-events-none z-0" />;
+  return (
+    <div
+      ref={containerRef}
+      className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#02110c] via-[#041d14] to-[#020c08]"
+    />
+  );
 };

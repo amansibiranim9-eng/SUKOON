@@ -16,7 +16,10 @@ interface AppStoreState {
   currentDhikr: DhikrItem;
   session: DhikrSession;
   settings: AppSettings;
+  language: 'ar' | 'en';
   setWorld: (world: WorldType) => void;
+  setLanguage: (lang: 'ar' | 'en') => void;
+  toggleLanguage: () => void;
   incrementDhikr: () => void;
   resetDhikr: () => void;
   setDhikr: (dhikr: DhikrItem) => void;
@@ -41,7 +44,11 @@ export const useAppStore = create<AppStoreState>((set) => ({
     sfxVolume: 0.8,
     theme: 'dark',
   },
+  language: 'ar',
   setWorld: (currentWorld) => set({ currentWorld }),
+  setLanguage: (language) => set({ language }),
+  toggleLanguage: () =>
+    set((state) => ({ language: state.language === 'ar' ? 'en' : 'ar' })),
   incrementDhikr: () =>
     set((state) => {
       const newCount = state.session.count + 1;

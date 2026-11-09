@@ -1,49 +1,77 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout';
-import { DhikrDisplay } from '@/components/dhikr';
+import {
+  SukoonLogo,
+  HeroGreeting,
+  StartButton,
+  WorldSelector,
+} from '@/components/ui';
 import { RainWorld, NoorWorld, SakinaWorld } from '@/components/worlds';
 import { useAppStore } from '@/store';
-import { Button } from '@/components/ui';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const App: React.FC = () => {
   const currentWorld = useAppStore((state) => state.currentWorld);
   const setWorld = useAppStore((state) => state.setWorld);
+  const language = useAppStore((state) => state.language);
 
   return (
     <AppLayout>
-      {/* Active 3D Atmospheric Background World */}
-      {currentWorld === 'rain' && <RainWorld />}
-      {currentWorld === 'noor' && <NoorWorld />}
-      {currentWorld === 'sakina' && <SakinaWorld />}
+      {/* Cinematic 3D Atmospheric Background Worlds with smooth transition */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentWorld}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2, ease: 'easeInOut' }}
+          className="fixed inset-0 pointer-events-none z-0"
+        >
+          {currentWorld === 'rain' && <RainWorld />}
+          {currentWorld === 'noor' && <NoorWorld />}
+          {currentWorld === 'sakina' && <SakinaWorld />}
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Interactive Dhikr Display */}
-      <div className="z-10 flex flex-col items-center">
-        <DhikrDisplay />
+      {/* Atmospheric radial vignette overlays */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-950/40 to-[#030712]/90" />
 
-        {/* Atmospheric World Selector */}
-        <div className="mt-8 flex items-center gap-3">
-          <Button
-            variant={currentWorld === 'rain' ? 'primary' : 'glass'}
-            size="sm"
-            onClick={() => setWorld('rain')}
-          >
-            Rain (مطر)
-          </Button>
-          <Button
-            variant={currentWorld === 'noor' ? 'primary' : 'glass'}
-            size="sm"
-            onClick={() => setWorld('noor')}
-          >
-            Noor (نور)
-          </Button>
-          <Button
-            variant={currentWorld === 'sakina' ? 'primary' : 'glass'}
-            size="sm"
-            onClick={() => setWorld('sakina')}
-          >
-            Sakina (سكينة)
-          </Button>
-        </div>
+      {/* Main Experience Visual Interface */}
+      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center gap-8 md:gap-10 px-4 py-4 my-auto">
+        {/* 1. SUKOON Logo & Identity */}
+        <SukoonLogo />
+
+        {/* 2. Welcoming Arabic Greeting / Spiritual Invitation */}
+        <HeroGreeting lang={language} />
+
+        {/* 3. Prominent "ابدأ الاستغفار" Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.4 }}
+          className="my-2"
+        >
+          <StartButton
+            lang={language}
+            onClick={() => {
+              // Action handler prepared for starting session
+            }}
+          />
+        </motion.div>
+
+        {/* 4. Three Immersive World Selections (RAIN, NOOR, SAKINA) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.6 }}
+          className="w-full mt-2"
+        >
+          <WorldSelector
+            currentWorld={currentWorld}
+            onSelectWorld={setWorld}
+            lang={language}
+          />
+        </motion.div>
       </div>
     </AppLayout>
   );
