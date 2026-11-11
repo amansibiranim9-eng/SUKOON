@@ -18,48 +18,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       className="relative min-h-screen flex flex-col justify-between overflow-hidden bg-sukoon-deep text-white antialiased font-sans select-none"
     >
-      {/* Top Atmospheric Header */}
-      <header className="w-full flex items-center justify-between px-5 sm:px-8 py-5 z-20">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={toggleLanguage}
-            className="px-3 py-1.5 rounded-full border border-white/10 bg-[#071426]/60 backdrop-blur-md text-xs font-medium text-sukoon-glow hover:border-sukoon-glow/50 transition-all duration-200 cursor-pointer active:scale-95"
-            aria-label="Toggle language"
-          >
-            {language === 'ar' ? 'English' : 'عربي'}
-          </button>
-
-          <button
-            onClick={toggleSound}
-            className="p-2 rounded-full border border-white/10 bg-[#071426]/60 backdrop-blur-md text-sukoon-glow hover:border-sukoon-glow/50 transition-all duration-200 cursor-pointer active:scale-95"
-            aria-label="Toggle sound"
-          >
-            {settings.soundEnabled ? (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        {/* Center / Right Brand Badge */}
-        <div className="flex items-center gap-2 text-xs text-white/60 font-light">
+      {/* Top Atmospheric Header - Clean layout without overlapping fixed header buttons */}
+      <header className="w-full flex items-center justify-between px-5 sm:px-8 py-4 z-10">
+        <div className="flex items-center gap-2">
+          {/* Subtle Brand Badge */}
           <span className="w-2 h-2 rounded-full bg-sukoon-glow animate-pulse" />
-          <span>{language === 'ar' ? 'سُكُون الروحي' : 'Spiritual Sukoon'}</span>
+          <span className="text-xs text-white/50 tracking-wider font-light">
+            {language === 'ar' ? 'سُكُون الروحي' : 'Spiritual Sukoon'}
+          </span>
         </div>
       </header>
 

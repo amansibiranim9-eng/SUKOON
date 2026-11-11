@@ -48,6 +48,11 @@ export class AudioService {
   private warmPadLayer: AmbientLayerNodes | null = null;
   private choirLayer: AmbientLayerNodes | null = null;
 
+  // Stillness drone layer
+  private stillnessDroneOsc: OscillatorNode | null = null;
+  private stillnessDroneGain: GainNode | null = null;
+  private isStillnessActive: boolean = false;
+
   /**
    * Lazily initializes the AudioContext and the master graph.
    * Master chain: sources -> masterGain -> compressor -> safe ceiling gain -> destination
@@ -615,6 +620,62 @@ export class AudioService {
   public stopWorldAmbient(): void {
     if (this.ambientMasterGain && this.ctx) {
       this.ambientMasterGain.gain.setValueAtTime(0, this.ctx.currentTime);
+    }
+  }
+
+  /**
+   * Smoothly transitions ambient audio and drone for Stillness Moment:
+   * - Ducks ambient to 20%
+   * - Fades in soft 108Hz grounding sine drone
+   * - Eases out gently on exit
+   */
+  public setStillnessMode(isStill: boolean): void {
+    if (this.isStillnessActive === isStill) return;
+    this.isStillnessActive = isStill;
+
+    const ctx = this.getContext();
+    if (!ctx || !this.ambientMasterGain) return;
+
+    const now = ctx.currentTime;
+    const transitionTime = isStill ? 3.5 : 1.2;
+
+    if (isStill) {
+      // Duck ambient audio smoothly
+      this.ambientMasterGain.gain.cancelScheduledValues(now);
+      this.ambientMasterGain.gain.setValueAtTime(this.ambientMasterGain.gain.value, now);
+      this.ambientMasterGain.gain.linearRampToValueAtTime(
+        this.ambientVolume * 0.25,
+        now + transitionTime
+      );
+
+      // Create or fade in stillness drone
+      if (!this.stillnessDroneGain) {
+        this.stillnessDroneGain = ctx.createGain();
+        this.stillnessDroneGain.gain.setValueAtTime(0, now);
+        this.stillnessDroneGain.connect(this.masterGain || ctx.destination);
+
+        this.stillnessDroneOsc = ctx.createOscillator();
+        this.stillnessDroneOsc.type = 'sine';
+        this.stillnessDroneOsc.frequency.setValueAtTime(108, now); // Sacred sub-harmonic
+        this.stillnessDroneOsc.connect(this.stillnessDroneGain);
+        this.stillnessDroneOsc.start();
+      }
+
+      this.stillnessDroneGain.gain.cancelScheduledValues(now);
+      this.stillnessDroneGain.gain.setValueAtTime(this.stillnessDroneGain.gain.value, now);
+      this.stillnessDroneGain.gain.linearRampToValueAtTime(0.18, now + transitionTime);
+    } else {
+      // Restore ambient volume gently
+      this.ambientMasterGain.gain.cancelScheduledValues(now);
+      this.ambientMasterGain.gain.setValueAtTime(this.ambientMasterGain.gain.value, now);
+      this.ambientMasterGain.gain.linearRampToValueAtTime(this.ambientVolume, now + transitionTime);
+
+      // Fade out drone
+      if (this.stillnessDroneGain) {
+        this.stillnessDroneGain.gain.cancelScheduledValues(now);
+        this.stillnessDroneGain.gain.setValueAtTime(this.stillnessDroneGain.gain.value, now);
+        this.stillnessDroneGain.gain.linearRampToValueAtTime(0, now + transitionTime);
+      }
     }
   }
 

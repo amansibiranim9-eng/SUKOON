@@ -6,9 +6,10 @@ import { WorldType } from '@/types/world';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenGarden?: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onOpenGarden }) => {
   const settings = useAppStore((state) => state.settings);
   const updateSettings = useAppStore((state) => state.updateSettings);
   const language = useAppStore((state) => state.language);
@@ -39,7 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="relative w-full max-w-md bg-[#071426]/95 border-t sm:border border-[#38bdf8]/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-[0_0_50px_rgba(22,139,255,0.25)] backdrop-blur-2xl max-h-[85vh] overflow-y-auto flex flex-col z-10"
+            className="relative w-full max-w-md bg-[#071426]/95 border-t sm:border border-[#38bdf8]/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-[0_0_50px_rgba(22,139,255,0.25)] backdrop-blur-2xl max-h-[88vh] overflow-y-auto flex flex-col z-10"
           >
             {/* Sheet Handle */}
             <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-3 sm:hidden" />
@@ -65,7 +66,116 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             {/* Options List */}
-            <div className="flex flex-col gap-4 text-sm text-white">
+            <div className="flex flex-col gap-3.5 text-sm text-white">
+              {/* My Garden Shortcut */}
+              {onOpenGarden && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenGarden();
+                  }}
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-[#2563eb]/25 to-[#0f172a] border border-[#38bdf8]/30 hover:border-[#38bdf8]/60 transition cursor-pointer text-right"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🌳</span>
+                    <div>
+                      <p className="font-semibold text-white">
+                        {language === 'ar' ? 'شجرة النور (روضتي)' : 'Tree of Noor (My Garden)'}
+                      </p>
+                      <p className="text-xs text-white/50">
+                        {language === 'ar' ? 'شاهد نمو أورادك وسكينتك' : 'Explore your spiritual growth'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[#38bdf8] text-sm">→</span>
+                </button>
+              )}
+
+              {/* Stillness Mode Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-[#030712]/60 border border-white/10">
+                <div>
+                  <p className="font-medium">{language === 'ar' ? 'لحظة السكون (Stillness)' : 'Stillness Moment'}</p>
+                  <p className="text-xs text-white/40">
+                    {language === 'ar' ? 'هدوء تلقائي بعد 5 ثوانٍ يمنح نقاط نور' : 'Auto-calm after 5s idle; earns Noor points'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => updateSettings({ stillnessEnabled: !settings.stillnessEnabled })}
+                  className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
+                    settings.stillnessEnabled ? 'bg-[#2563eb]' : 'bg-white/20'
+                  }`}
+                  aria-label="Toggle stillness"
+                >
+                  <span
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                      settings.stillnessEnabled ? 'right-0.5' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Voice Mode Toggle (Opt-in with clear privacy disclosure) */}
+              <div className="flex flex-col gap-2 p-3 rounded-2xl bg-[#030712]/60 border border-white/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{language === 'ar' ? 'التفاعل الصوتي (Voice mode)' : 'Voice Mode'}</p>
+                    <p className="text-xs text-white/40">
+                      {language === 'ar' ? 'العالم ينبض مع صوت الذكر' : 'World breathes with your recitation'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => updateSettings({ voiceModeEnabled: !settings.voiceModeEnabled })}
+                    className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
+                      settings.voiceModeEnabled ? 'bg-[#2563eb]' : 'bg-white/20'
+                    }`}
+                    aria-label="Toggle voice mode"
+                  >
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                        settings.voiceModeEnabled ? 'right-0.5' : 'left-0.5'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Privacy Guarantee Note */}
+                <p className="text-[10px] text-[#38bdf8]/80 leading-relaxed bg-[#071426] p-2 rounded-xl border border-[#38bdf8]/20">
+                  🔒 {language === 'ar'
+                    ? 'المعالجة الصوتية تتم محلياً بالكامل على جهازك دون أي تسجيل أو حفظ أو إرسال خارجي.'
+                    : 'Audio is processed purely on-device via Web Audio. Zero audio is ever recorded, stored, or sent.'}
+                </p>
+
+                {/* Calibration / Utterance counting sub-options */}
+                {settings.voiceModeEnabled && (
+                  <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-white/80">{language === 'ar' ? 'العدّ التلقائي بالصوت' : 'Auto-count on utterance'}</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.voiceCountEnabled ?? false}
+                        onChange={(e) => updateSettings({ voiceCountEnabled: e.target.checked })}
+                        className="accent-[#2563eb] cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1 text-xs">
+                      <div className="flex justify-between text-white/60">
+                        <span>{language === 'ar' ? 'حساسية الالتقاط' : 'Microphone Sensitivity'}</span>
+                        <span className="text-[#38bdf8]">{Math.round((settings.voiceSensitivity ?? 0.5) * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={settings.voiceSensitivity ?? 0.5}
+                        onChange={(e) => updateSettings({ voiceSensitivity: parseFloat(e.target.value) })}
+                        className="w-full accent-[#2563eb] cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Sound Toggle */}
               <div className="flex items-center justify-between p-3 rounded-2xl bg-[#030712]/60 border border-white/10">
                 <div>
@@ -83,13 +193,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 >
                   <span
                     className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                      settings.soundEnabled
-                        ? language === 'ar'
-                          ? 'left-0.5'
-                          : 'right-0.5'
-                        : language === 'ar'
-                        ? 'right-0.5'
-                        : 'left-0.5'
+                      settings.soundEnabled ? 'right-0.5' : 'left-0.5'
                     }`}
                   />
                 </button>
@@ -150,13 +254,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 >
                   <span
                     className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                      settings.hapticEnabled
-                        ? language === 'ar'
-                          ? 'left-0.5'
-                          : 'right-0.5'
-                        : language === 'ar'
-                        ? 'right-0.5'
-                        : 'left-0.5'
+                      settings.hapticEnabled ? 'right-0.5' : 'left-0.5'
                     }`}
                   />
                 </button>

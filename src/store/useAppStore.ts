@@ -96,6 +96,7 @@ export interface AppStoreState {
   session: DhikrSession;
   dailyTotal: number;
   dailyHistory: Record<string, number>;
+  noorPoints: number;
   settings: AppSettings;
   language: 'ar' | 'en';
   activeTab: 'counter' | 'adhkar' | 'worlds';
@@ -115,6 +116,7 @@ export interface AppStoreState {
   toggleSound: () => void;
   updateSettings: (partial: Partial<AppSettings>) => void;
   decayIntensity: () => void;
+  addNoorPoints: (points: number) => void;
 }
 
 function getTodayKey(): string {
@@ -130,6 +132,7 @@ export const useAppStore = create<AppStoreState>()(
       adhkarList: AUTHENTIC_ADHKAR,
       dailyTotal: 0,
       dailyHistory: {},
+      noorPoints: 0,
       activeTab: 'counter',
       rawIntensity: 0,
       intensity: 0,
@@ -148,6 +151,11 @@ export const useAppStore = create<AppStoreState>()(
         ambientVolume: 0.6,
         sfxVolume: 0.8,
         theme: 'dark',
+        stillnessEnabled: true,
+        voiceModeEnabled: false,
+        voiceCountEnabled: false,
+        voiceSensitivity: 0.5,
+        reducedMotion: false,
       },
       language: 'ar',
 
@@ -165,6 +173,9 @@ export const useAppStore = create<AppStoreState>()(
 
       toggleLanguage: () =>
         set((state) => ({ language: state.language === 'ar' ? 'en' : 'ar' })),
+
+      addNoorPoints: (points) =>
+        set((state) => ({ noorPoints: state.noorPoints + points })),
 
       incrementDhikr: () => {
         const state = get();
@@ -297,6 +308,7 @@ export const useAppStore = create<AppStoreState>()(
         currentWorld: state.currentWorld,
         dailyTotal: state.dailyTotal,
         dailyHistory: state.dailyHistory,
+        noorPoints: state.noorPoints,
         session: {
           dhikrId: state.session.dhikrId,
           count: state.session.count,

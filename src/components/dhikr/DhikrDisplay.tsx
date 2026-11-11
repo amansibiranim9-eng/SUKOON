@@ -2,6 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store';
 import { visualService } from '@/services/visualService';
+import { audioService } from '@/services/audioService';
+import { voiceService } from '@/services/voiceService';
+import {
+  createInitialStillnessState,
+  updateStillnessTick,
+  recordInteraction as recordStillnessInteraction,
+  StillnessTrackerState,
+} from '@/utils/stillness';
 import { Tasbih } from './Tasbih';
 
 interface Ripple {
@@ -21,11 +29,74 @@ export const DhikrDisplay: React.FC = () => {
   const language = useAppStore((state) => state.language);
   const decayIntensity = useAppStore((state) => state.decayIntensity);
 
+  const addNoorPoints = useAppStore((state) => state.addNoorPoints);
+
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [isPressing, setIsPressing] = useState(false);
   const [flow, setFlow] = useState(0);
+  const [stillnessState, setStillnessState] = useState<StillnessTrackerState>(() =>
+    createInitialStillnessState()
+  );
 
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const stillnessRef = useRef<StillnessTrackerState>(stillnessState);
+  stillnessRef.current = stillnessState;
+
+  // Stillness Moment Tick & Audio / Noor Points integration
+  useEffect(() => {
+    if (!settings.stillnessEnabled) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const result = updateStillnessTick(stillnessRef.current, now, 200);
+      setStillnessState(result.nextState);
+
+      if (result.justEnteredStillness) {
+        audioService.setStillnessMode(true);
+      } else if (result.justExitedStillness) {
+        audioService.setStillnessMode(false);
+      }
+
+      if (result.newNoorPoints > 0) {
+        addNoorPoints(result.newNoorPoints);
+      }
+    }, 200);
+
+    return () => {
+      clearInterval(interval);
+      audioService.setStillnessMode(false);
+    };
+  }, [settings.stillnessEnabled, addNoorPoints]);
+
+  // Voice Mode integration in Session View
+  useEffect(() => {
+    if (!settings.voiceModeEnabled) {
+      voiceService.stopListening();
+      return;
+    }
+
+    voiceService.setSensitivity(settings.voiceSensitivity ?? 0.5);
+    voiceService.startListening();
+
+    const unbindLoudness = voiceService.onLoudness((loudness) => {
+      // Feed voice loudness directly into visualService & heart orb
+      if (loudness > 0.05) {
+        setStillnessState((prev) => recordStillnessInteraction(prev));
+      }
+    });
+
+    const unbindUtterance = voiceService.onUtterance(() => {
+      if (settings.voiceCountEnabled) {
+        triggerIncrement();
+      }
+    });
+
+    return () => {
+      unbindLoudness();
+      unbindUtterance();
+      voiceService.stopListening();
+    };
+  }, [settings.voiceModeEnabled, settings.voiceCountEnabled, settings.voiceSensitivity]);
 
   // Subscribe to visualService flow updates
   useEffect(() => {
@@ -60,6 +131,10 @@ export const DhikrDisplay: React.FC = () => {
   }, [incrementDhikr, tier, settings.hapticEnabled]);
 
   const triggerIncrement = (e?: React.MouseEvent | React.TouchEvent) => {
+    // Interaction gently exits stillness
+    setStillnessState((prev) => recordStillnessInteraction(prev));
+    audioService.setStillnessMode(false);
+
     let screenX = window.innerWidth / 2;
     let screenY = window.innerHeight / 2;
     let localX = 140;
@@ -165,6 +240,21 @@ export const DhikrDisplay: React.FC = () => {
             opacity: flowGlowOpacity,
           }}
         />
+
+        {/* Stillness Ring Counting Seconds */}
+        {settings.stillnessEnabled && stillnessState.isStill && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1.05 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            className="absolute inset-[-28px] rounded-full border border-[#38bdf8]/40 pointer-events-none flex items-center justify-center"
+          >
+            <span className="absolute -top-7 text-[11px] font-arabic font-medium tracking-widest text-[#38bdf8] bg-[#030712]/80 px-2 py-0.5 rounded-full border border-[#38bdf8]/30">
+              {language === 'ar' ? 'سكون تام' : 'Stillness'} ({stillnessState.totalStillnessSeconds}s)
+            </span>
+          </motion.div>
+        )}
 
         {/* Animated Orbiting Particles */}
         <div

@@ -10,6 +10,7 @@ import { RainWorld, NoorWorld, SakinaWorld } from '@/components/worlds';
 const DhikrLibraryModal = lazy(() => import('@/components/library/DhikrLibraryModal'));
 const SettingsModal = lazy(() => import('@/components/settings/SettingsModal'));
 const StatsModal = lazy(() => import('@/components/stats/StatsModal'));
+const TreeOfNoorModal = lazy(() => import('@/components/garden/TreeOfNoorModal'));
 
 export const App: React.FC = () => {
   const view = useAppStore((state) => state.view);
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isGardenOpen, setIsGardenOpen] = useState(false);
 
   return (
     <AppLayout>
@@ -55,6 +57,15 @@ export const App: React.FC = () => {
           >
             <span>⚡</span>
             <span className="font-medium">{language === 'ar' ? 'الإنجاز' : 'Stats'}</span>
+          </button>
+
+          <button
+            onClick={() => setIsGardenOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#071426]/80 hover:bg-[#0f172a] text-[#60a5fa] border border-[#60a5fa]/25 text-xs backdrop-blur-md transition cursor-pointer"
+            aria-label="Open My Garden"
+          >
+            <span>🌳</span>
+            <span className="font-medium">{language === 'ar' ? 'روضتي' : 'Garden'}</span>
           </button>
         </div>
 
@@ -141,7 +152,7 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* Adhkar Tab opens library modal or triggers view */}
+            {/* Adhkar Tab opens library modal */}
             {activeTab === 'adhkar' && (
               <div className="w-full max-w-lg mx-auto p-4 flex flex-col items-center justify-center my-auto animate-fadeIn text-center">
                 <button
@@ -169,10 +180,17 @@ export const App: React.FC = () => {
           <DhikrLibraryModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
         )}
         {isSettingsOpen && (
-          <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            onOpenGarden={() => setIsGardenOpen(true)}
+          />
         )}
         {isStatsOpen && (
           <StatsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
+        )}
+        {isGardenOpen && (
+          <TreeOfNoorModal isOpen={isGardenOpen} onClose={() => setIsGardenOpen(false)} />
         )}
       </Suspense>
     </AppLayout>
