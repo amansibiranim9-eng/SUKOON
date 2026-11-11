@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="bg-slate-950">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#020617" />
     <meta name="description" content="SUKOON - Premium interactive Dhikr web experience" />
     <title>SUKOON | سُكُون</title>
     <!-- Google Fonts for Arabic typography and clean sans font -->
@@ -13,9 +14,73 @@
       href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <style>
+      html, body {
+        background-color: #020617;
+        color: #f8fafc;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      #fallback-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: 'Amiri', serif, system-ui, sans-serif;
+        text-align: center;
+        padding: 1.5rem;
+        background-color: #020617;
+      }
+      .fallback-logo {
+        font-size: 2.25rem;
+        color: #6ee7b7;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+      }
+      .fallback-sub {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 0.75rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-bottom: 2rem;
+      }
+      .fallback-msg {
+        font-size: 1.125rem;
+        color: #cbd5e1;
+        max-width: 24rem;
+        line-height: 1.6;
+      }
+      .fallback-spinner {
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 2px solid rgba(52, 211, 153, 0.2);
+        border-top-color: #34d399;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-top: 1.5rem;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
-    <div id="root"></div>
+    <div id="root">
+      <div id="fallback-screen">
+        <div class="fallback-logo">سُكُون</div>
+        <div class="fallback-sub">SUKOON</div>
+        <div class="fallback-msg">جاري تهيئة الملاذ الروحي...</div>
+        <div class="fallback-spinner"></div>
+      </div>
+    </div>
+    <noscript>
+      <div style="padding: 2rem; text-align: center; color: #f8fafc; font-family: sans-serif;">
+        يرجى تفعيل الجافاسكريبت لتجربة سُكُون. / Please enable JavaScript to experience SUKOON.
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
