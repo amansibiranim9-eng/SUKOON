@@ -1,6 +1,13 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { WorldType, DhikrItem, DhikrSession, AppSettings } from '@/types';
 import { audioService } from '@/services/audioService';
+import {
+  calculateTier,
+  calculateIntensity,
+  decayIntensity,
+  ProgressionTier,
+} from '@/utils/progression';
 
 export const AUTHENTIC_ADHKAR: DhikrItem[] = [
   {
@@ -79,16 +86,25 @@ export const AUTHENTIC_ADHKAR: DhikrItem[] = [
 
 export const DEFAULT_DHIKR: DhikrItem = AUTHENTIC_ADHKAR[0];
 
-interface AppStoreState {
+export type AppView = 'home' | 'session';
+
+export interface AppStoreState {
+  view: AppView;
   currentWorld: WorldType;
   currentDhikr: DhikrItem;
   adhkarList: DhikrItem[];
   session: DhikrSession;
   dailyTotal: number;
+  dailyHistory: Record<string, number>;
   settings: AppSettings;
   language: 'ar' | 'en';
   activeTab: 'counter' | 'adhkar' | 'worlds';
-  interactionIntensity: number; // dynamically pulses on interactions
+  rawIntensity: number;
+  intensity: number;
+  interactionIntensity: number; // alias for backwards compatibility
+  tier: ProgressionTier;
+
+  setView: (view: AppView) => void;
   setActiveTab: (tab: 'counter' | 'adhkar' | 'worlds') => void;
   setWorld: (world: WorldType) => void;
   setLanguage: (lang: 'ar' | 'en') => void;
@@ -101,109 +117,182 @@ interface AppStoreState {
   decayIntensity: () => void;
 }
 
-export const useAppStore = create<AppStoreState>((set, get) => ({
-  currentWorld: 'rain',
-  currentDhikr: DEFAULT_DHIKR,
-  adhkarList: AUTHENTIC_ADHKAR,
-  dailyTotal: 0,
-  activeTab: 'counter',
-  interactionIntensity: 0,
-  session: {
-    dhikrId: DEFAULT_DHIKR.id,
-    count: 0,
-    completedCycles: 0,
-    startedAt: Date.now(),
-    lastInteractionAt: Date.now(),
-  },
-  settings: {
-    soundEnabled: true,
-    hapticEnabled: true,
-    ambientVolume: 0.6,
-    sfxVolume: 0.8,
-    theme: 'dark',
-  },
-  language: 'ar',
-  setActiveTab: (activeTab) => set({ activeTab }),
-  setWorld: (currentWorld) => {
-    set({ currentWorld });
-    audioService.setWorldAmbience(currentWorld);
-  },
-  setLanguage: (language) => set({ language }),
-  toggleLanguage: () =>
-    set((state) => ({ language: state.language === 'ar' ? 'en' : 'ar' })),
-  incrementDhikr: () => {
-    const state = get();
-    const newCount = state.session.count + 1;
-    const target = state.currentDhikr.targetCount;
-    const isCycleComplete = target > 0 && newCount >= target;
+function getTodayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
-    // Trigger subtle audio & haptic feedback
-    if (state.settings.soundEnabled) {
-      if (isCycleComplete) {
-        audioService.playSoundEffect('completion');
-      } else {
-        audioService.playSoundEffect('bead');
-      }
-    }
-    if (state.settings.hapticEnabled) {
-      audioService.triggerHaptic(isCycleComplete ? 'completion' : 'light');
-    }
-
-    set({
-      dailyTotal: state.dailyTotal + 1,
-      interactionIntensity: 1.0,
-      session: {
-        ...state.session,
-        count: isCycleComplete ? 0 : newCount,
-        completedCycles: isCycleComplete
-          ? state.session.completedCycles + 1
-          : state.session.completedCycles,
-        lastInteractionAt: Date.now(),
-      },
-    });
-  },
-  decayIntensity: () => {
-    set((state) => ({
-      interactionIntensity: Math.max(0, state.interactionIntensity * 0.92 - 0.01),
-    }));
-  },
-  resetDhikr: () =>
-    set((state) => ({
-      session: {
-        ...state.session,
-        count: 0,
-        completedCycles: 0,
-        lastInteractionAt: Date.now(),
-      },
-    })),
-  setDhikr: (currentDhikr) =>
-    set(() => ({
-      currentDhikr,
+export const useAppStore = create<AppStoreState>()(
+  persist(
+    (set, get) => ({
+      view: 'home',
+      currentWorld: 'rain',
+      currentDhikr: DEFAULT_DHIKR,
+      adhkarList: AUTHENTIC_ADHKAR,
+      dailyTotal: 0,
+      dailyHistory: {},
       activeTab: 'counter',
+      rawIntensity: 0,
+      intensity: 0,
+      interactionIntensity: 0,
+      tier: 0,
       session: {
-        dhikrId: currentDhikr.id,
+        dhikrId: DEFAULT_DHIKR.id,
         count: 0,
         completedCycles: 0,
         startedAt: Date.now(),
         lastInteractionAt: Date.now(),
       },
-    })),
-  toggleSound: () =>
-    set((state) => {
-      const soundEnabled = !state.settings.soundEnabled;
-      audioService.setMuted(!soundEnabled);
-      return {
-        settings: {
-          ...state.settings,
-          soundEnabled,
-        },
-      };
-    }),
-  updateSettings: (partial) =>
-    set((state) => ({
       settings: {
-        ...state.settings,
-        ...partial,
+        soundEnabled: true,
+        hapticEnabled: true,
+        ambientVolume: 0.6,
+        sfxVolume: 0.8,
+        theme: 'dark',
       },
-    })),
-}));
+      language: 'ar',
+
+      setView: (view: AppView) => set({ view }),
+
+      setActiveTab: (activeTab) => set({ activeTab }),
+
+      setWorld: (currentWorld) => {
+        set({ currentWorld });
+        audioService.setWorldAmbience(currentWorld);
+      },
+
+      setLanguage: (language) => set({ language }),
+
+      toggleLanguage: () =>
+        set((state) => ({ language: state.language === 'ar' ? 'en' : 'ar' })),
+
+      incrementDhikr: () => {
+        const state = get();
+        const currentCount = state.session.count;
+        const target = state.currentDhikr.targetCount;
+        const nextCount = currentCount + 1;
+        const isCycleComplete = target > 0 && nextCount >= target;
+
+        // Audio & Haptic feedback
+        if (state.settings.soundEnabled) {
+          if (isCycleComplete) {
+            audioService.playSoundEffect('completion');
+          } else {
+            audioService.playSoundEffect('bead');
+          }
+        }
+        if (state.settings.hapticEnabled) {
+          audioService.triggerHaptic(isCycleComplete ? 'completion' : 'light');
+        }
+
+        const newCount = isCycleComplete ? 0 : nextCount;
+        const newCycles = isCycleComplete
+          ? state.session.completedCycles + 1
+          : state.session.completedCycles;
+
+        const nextRawIntensity = 1.0;
+        const easedIntensity = calculateIntensity(nextRawIntensity);
+        const nextTier = calculateTier(newCount, target);
+
+        const todayKey = getTodayKey();
+        const updatedTodayCount = (state.dailyHistory[todayKey] || 0) + 1;
+
+        set({
+          dailyTotal: state.dailyTotal + 1,
+          dailyHistory: {
+            ...state.dailyHistory,
+            [todayKey]: updatedTodayCount,
+          },
+          rawIntensity: nextRawIntensity,
+          intensity: easedIntensity,
+          interactionIntensity: easedIntensity,
+          tier: nextTier,
+          session: {
+            ...state.session,
+            count: newCount,
+            completedCycles: newCycles,
+            lastInteractionAt: Date.now(),
+          },
+        });
+      },
+
+      decayIntensity: () => {
+        set((state) => {
+          if (state.rawIntensity <= 0) return state;
+          const nextRaw = decayIntensity(state.rawIntensity);
+          const nextEased = calculateIntensity(nextRaw);
+          return {
+            rawIntensity: nextRaw,
+            intensity: nextEased,
+            interactionIntensity: nextEased,
+          };
+        });
+      },
+
+      resetDhikr: () => {
+        const state = get();
+        const target = state.currentDhikr.targetCount;
+        set({
+          tier: calculateTier(0, target),
+          session: {
+            ...state.session,
+            count: 0,
+            completedCycles: 0,
+            lastInteractionAt: Date.now(),
+          },
+        });
+      },
+
+      setDhikr: (currentDhikr) =>
+        set(() => ({
+          currentDhikr,
+          activeTab: 'counter',
+          tier: calculateTier(0, currentDhikr.targetCount),
+          session: {
+            dhikrId: currentDhikr.id,
+            count: 0,
+            completedCycles: 0,
+            startedAt: Date.now(),
+            lastInteractionAt: Date.now(),
+          },
+        })),
+
+      toggleSound: () =>
+        set((state) => {
+          const soundEnabled = !state.settings.soundEnabled;
+          audioService.setMuted(!soundEnabled);
+          return {
+            settings: {
+              ...state.settings,
+              soundEnabled,
+            },
+          };
+        }),
+
+      updateSettings: (partial) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            ...partial,
+          },
+        })),
+    }),
+    {
+      name: 'sukoon_app_storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        settings: state.settings,
+        language: state.language,
+        currentWorld: state.currentWorld,
+        dailyTotal: state.dailyTotal,
+        dailyHistory: state.dailyHistory,
+        session: {
+          dhikrId: state.session.dhikrId,
+          count: state.session.count,
+          completedCycles: state.session.completedCycles,
+          startedAt: state.session.startedAt,
+          lastInteractionAt: state.session.lastInteractionAt,
+        },
+      }),
+    }
+  )
+);

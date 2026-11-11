@@ -1,74 +1,52 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 
-interface ErrorBoundaryProps {
+interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean;
   error?: Error;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+export class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+  };
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('Sukoon ErrorBoundary caught an unhandled error:', error, errorInfo);
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Sukoon App Error Boundary caught an error:', error, errorInfo);
   }
 
-  handleReload = (): void => {
-    window.location.reload();
-  };
-
-  render(): ReactNode {
+  public render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
       return (
-        <div
-          dir="rtl"
-          className="fixed inset-0 flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-6 text-center select-none"
-        >
-          <div className="max-w-md w-full flex flex-col items-center gap-6 p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-              <span className="w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_15px_#34d399]" />
-            </div>
-
-            <div className="space-y-2">
-              <h1 className="text-3xl font-arabic font-normal tracking-wide text-emerald-300">
-                سُكُون
-              </h1>
-              <p className="text-sm font-sans tracking-widest text-slate-400 uppercase">
-                SUKOON
-              </p>
-            </div>
-
-            <div className="space-y-2 text-slate-300">
-              <p className="text-lg font-arabic font-normal leading-relaxed">
-                حدث خطأ غير متوقع أثناء تحميل التجربة الروحية.
-              </p>
-              <p className="text-xs text-slate-500 font-sans">
-                An unexpected error occurred while loading the experience.
-              </p>
-            </div>
-
-            <button
-              onClick={this.handleReload}
-              className="mt-2 px-8 py-3 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-sm font-medium transition cursor-pointer"
-            >
-              إعادة المحاولة / Reload
-            </button>
+        <div className="min-h-screen w-full bg-[#030712] text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans">
+          <div className="w-16 h-16 rounded-full bg-[#2563eb]/20 border border-[#38bdf8]/40 flex items-center justify-center mb-6 shadow-[0_0_35px_rgba(37,99,235,0.4)]">
+            <span className="text-2xl text-[#38bdf8]">✦</span>
           </div>
+
+          <h1 className="text-3xl font-arabic font-bold text-white mb-2">
+            شُكُون الروحي
+          </h1>
+          <p className="text-sm text-[#38bdf8] mb-6 font-medium">
+            حدث خطأ غير متوقع في تجربة الذكر
+          </p>
+
+          <p className="max-w-md text-xs text-white/50 mb-8 leading-relaxed font-mono">
+            {this.state.error?.message || 'An unexpected error occurred.'}
+          </p>
+
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 rounded-full bg-[#2563eb] hover:bg-[#38bdf8] hover:text-[#030712] text-white font-medium text-sm transition-all duration-300 shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+          >
+            إعادة تحميل التجربة
+          </button>
         </div>
       );
     }
