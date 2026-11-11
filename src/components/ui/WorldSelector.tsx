@@ -1,13 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { useAppStore } from '@/store';
 import { WorldType } from '@/types';
-import { cn } from '@/utils';
-
-export interface WorldSelectorProps {
-  currentWorld: WorldType;
-  onSelectWorld: (world: WorldType) => void;
-  lang?: 'ar' | 'en';
-}
 
 interface WorldOption {
   id: WorldType;
@@ -15,100 +8,84 @@ interface WorldOption {
   titleEn: string;
   subtitleAr: string;
   subtitleEn: string;
-  dotColor: string;
+  icon: string;
 }
 
-const worlds: WorldOption[] = [
+const WORLDS: WorldOption[] = [
   {
     id: 'rain',
-    titleAr: 'مَطَر',
-    titleEn: 'RAIN',
-    subtitleAr: 'فحم داكن وضياء فضي',
-    subtitleEn: 'Dark charcoal & silver rain',
-    dotColor: 'bg-slate-300 shadow-[0_0_8px_#d1d5db]',
+    titleAr: 'عالم المطر',
+    titleEn: 'Rain World',
+    subtitleAr: 'قطرات متساقطة وسكون عميق',
+    subtitleEn: 'Cinematic falling rain & deep stillness',
+    icon: '🌧️',
   },
   {
     id: 'noor',
-    titleAr: 'نُور',
-    titleEn: 'NOOR',
-    subtitleAr: 'إشراق ذهبي دافئ',
-    subtitleEn: 'Warm golden illumination',
-    dotColor: 'bg-[#C6A66A] shadow-[0_0_8px_#C6A66A]',
+    titleAr: 'عالم النور',
+    titleEn: 'Night & Noor',
+    subtitleAr: 'ضوء القمر وسكينة الليل',
+    subtitleEn: 'Serene moonlight & drifting stars',
+    icon: '🌙',
   },
   {
     id: 'sakina',
-    titleAr: 'سَكِينَة',
-    titleEn: 'SAKINA',
-    subtitleAr: 'زيتوني هادئ ونور عاجي',
-    subtitleEn: 'Muted olive & ivory peace',
-    dotColor: 'bg-[#E9E2D3] shadow-[0_0_8px_#E9E2D3]',
+    titleAr: 'عالم السكينة',
+    titleEn: 'Sakina World',
+    subtitleAr: 'أطياف هادئة ونسائم روحانية',
+    subtitleEn: 'Tranquil drifting particles & inner calm',
+    icon: '✨',
   },
 ];
 
-export const WorldSelector: React.FC<WorldSelectorProps> = ({
-  currentWorld,
-  onSelectWorld,
-  lang = 'ar',
-}) => {
-  const isArabic = lang === 'ar';
+export const WorldSelector: React.FC = () => {
+  const currentWorld = useAppStore((state) => state.currentWorld);
+  const setWorld = useAppStore((state) => state.setWorld);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const language = useAppStore((state) => state.language);
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full max-w-xl mx-auto px-4 select-none">
-      <span className="text-[11px] uppercase tracking-[0.25em] text-[#C6A66A]/80 font-light">
-        {isArabic ? 'العوالم الروحية' : 'Atmospheric Worlds'}
-      </span>
+    <div className="flex flex-col gap-3 w-full max-w-sm mx-auto p-4">
+      <h3 className="text-center text-sm font-semibold text-sukoon-glow uppercase tracking-wider mb-2">
+        {language === 'ar' ? 'اختر البيئة الروحانية' : 'Select Atmosphere'}
+      </h3>
 
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5 w-full">
-        {worlds.map((world) => {
-          const isActive = currentWorld === world.id;
-
+      <div className="flex flex-col gap-2.5">
+        {WORLDS.map((world) => {
+          const isSelected = currentWorld === world.id;
           return (
-            <motion.button
+            <button
               key={world.id}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onSelectWorld(world.id)}
-              className={cn(
-                'relative flex flex-col items-center justify-center py-3.5 px-2 rounded-2xl border transition-all duration-300 backdrop-blur-md cursor-pointer',
-                isActive
-                  ? 'bg-[#171713]/90 border-[#C6A66A]/60 shadow-[0_4px_24px_rgba(198,166,106,0.18)] text-[#E9E2D3]'
-                  : 'bg-[#10110F]/60 border-white/5 hover:border-white/10 hover:bg-[#171713]/50 text-[#E9E2D3]/60'
-              )}
+              onClick={() => {
+                setWorld(world.id);
+                setActiveTab('counter');
+              }}
+              className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left ${
+                isSelected
+                  ? 'bg-sukoon-electric/15 border-sukoon-glow shadow-[0_0_20px_rgba(22,139,255,0.35)]'
+                  : 'bg-[#071426]/60 border-white/10 hover:border-sukoon-glow/40 hover:bg-[#071426]/80'
+              }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className={cn(
-                    'w-1.5 h-1.5 rounded-full transition-all duration-300',
-                    world.dotColor,
-                    isActive ? 'scale-125' : 'opacity-40'
-                  )}
-                />
-                <span
-                  className={cn(
-                    'text-sm font-medium transition-colors',
-                    isArabic ? 'font-arabic text-base font-normal' : '',
-                    isActive ? 'text-[#E9E2D3] font-semibold' : 'text-[#E9E2D3]/70'
-                  )}
-                >
-                  {isArabic ? world.titleAr : world.titleEn}
-                </span>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{world.icon}</span>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sukoon-pure text-sm sm:text-base">
+                    {language === 'ar' ? world.titleAr : world.titleEn}
+                  </span>
+                  <span className="text-xs text-white/50">
+                    {language === 'ar' ? world.subtitleAr : world.subtitleEn}
+                  </span>
+                </div>
               </div>
 
-              <span className="text-[10px] text-[#E9E2D3]/40 tracking-wide line-clamp-1">
-                {isArabic ? world.subtitleAr : world.subtitleEn}
-              </span>
-
-              {isActive && (
-                <motion.div
-                  layoutId="activeWorldIndicator"
-                  className="absolute inset-0 rounded-2xl border border-[#C6A66A]/40 pointer-events-none"
-                  transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-                />
+              {isSelected && (
+                <span className="w-2 h-2 rounded-full bg-sukoon-glow shadow-[0_0_8px_#39A9FF]" />
               )}
-            </motion.button>
+            </button>
           );
         })}
       </div>
     </div>
   );
 };
+export default WorldSelector;

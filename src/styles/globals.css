@@ -7,12 +7,52 @@
     color-scheme: dark;
   }
 
+  html,
   body {
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    background-color: #030407;
+    color: #ffffff;
+    font-family: 'Inter', system-ui, sans-serif;
     user-select: none;
     -webkit-user-select: none;
-    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    touch-action: manipulation;
   }
+}
+
+/* Atmospheric subtle noise and vignettes */
+.cinematic-vignette {
+  background: radial-gradient(circle at 50% 50%, rgba(7, 20, 38, 0.1) 0%, rgba(3, 4, 7, 0.85) 85%);
+  pointer-events: none;
+}
+
+.electric-glow {
+  text-shadow: 0 0 20px rgba(57, 169, 255, 0.65);
+}
+
+.electric-box-glow {
+  box-shadow: 0 0 30px rgba(22, 139, 255, 0.25), inset 0 0 20px rgba(57, 169, 255, 0.15);
+}
+
+/* Glassmorphism tuned for deep black and midnight blue */
+.glass-panel {
+  background: rgba(7, 20, 38, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(57, 169, 255, 0.2);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #030407;
+}
+::-webkit-scrollbar-thumb {
+  background: #071426;
+  border-radius: 9999px;
+  border: 1px solid rgba(57, 169, 255, 0.2);
 }

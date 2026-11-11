@@ -1,149 +1,102 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { useAppStore } from '@/store';
 import { AppLayout } from '@/components/layout';
-import {
-  SukoonLogo,
-  HeroGreeting,
-  WorldSelector,
-} from '@/components/ui';
+import { SukoonLogo, HeroGreeting, WorldSelector } from '@/components/ui';
 import { DhikrDisplay } from '@/components/dhikr';
 import { RainWorld, NoorWorld, SakinaWorld } from '@/components/worlds';
-import { useAppStore } from '@/store';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export const App: React.FC = () => {
   const currentWorld = useAppStore((state) => state.currentWorld);
-  const setWorld = useAppStore((state) => state.setWorld);
-  const language = useAppStore((state) => state.language);
   const activeTab = useAppStore((state) => state.activeTab);
   const adhkarList = useAppStore((state) => state.adhkarList);
   const currentDhikr = useAppStore((state) => state.currentDhikr);
   const setDhikr = useAppStore((state) => state.setDhikr);
-
-  const isArabic = language === 'ar';
+  const language = useAppStore((state) => state.language);
 
   return (
     <AppLayout>
-      {/* 3D Atmospheric Background Worlds with smooth crossfade */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentWorld}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.2, ease: 'easeInOut' }}
-          className="fixed inset-0 pointer-events-none z-0"
-        >
-          {currentWorld === 'rain' && <RainWorld />}
-          {currentWorld === 'noor' && <NoorWorld />}
-          {currentWorld === 'sakina' && <SakinaWorld />}
-        </motion.div>
-      </AnimatePresence>
+      {/* 3D Atmospheric Background Worlds */}
+      <Suspense fallback={<div className="absolute inset-0 bg-[#030407]" />}>
+        {currentWorld === 'rain' && <RainWorld />}
+        {currentWorld === 'noor' && <NoorWorld />}
+        {currentWorld === 'sakina' && <SakinaWorld />}
+      </Suspense>
 
-      {/* Atmospheric dark organic vignette */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-[#10110F]/40 to-[#10110F]/90" />
+      {/* Cinematic Vignette Overlay */}
+      <div className="fixed inset-0 cinematic-vignette pointer-events-none -z-5" />
 
-      {/* Main Experience Visual Content Container */}
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center gap-6 px-4 my-auto">
-        {/* Brand identity emblem */}
-        <SukoonLogo />
+      {/* Main Tab Content */}
+      {activeTab === 'counter' && (
+        <div className="w-full flex flex-col items-center justify-center my-auto animate-fadeIn">
+          <div className="mb-4">
+            <SukoonLogo />
+          </div>
 
-        {/* Tab 1: Main Interactive Dhikr Counter Experience */}
-        {activeTab === 'counter' && (
-          <motion.div
-            key="tab-counter"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.5 }}
-            className="w-full flex flex-col items-center"
-          >
-            <HeroGreeting lang={language} />
+          <div className="mb-4">
+            <HeroGreeting />
+          </div>
 
-            <div className="w-full mt-2">
-              <DhikrDisplay />
-            </div>
-          </motion.div>
-        )}
+          <DhikrDisplay />
+        </div>
+      )}
 
-        {/* Tab 2: Authentic Adhkar Selection */}
-        {activeTab === 'adhkar' && (
-          <motion.div
-            key="tab-adhkar"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-xl flex flex-col items-center gap-3 px-2"
-          >
-            <div className="text-center mb-2">
-              <h3 className="font-arabic text-2xl text-[#E9E2D3]">
-                {isArabic ? 'اختر الذكر المبارك' : 'Choose Dhikr'}
-              </h3>
-              <p className="text-xs text-[#E9E2D3]/60 font-light mt-1">
-                {isArabic
-                  ? 'أذكار مأثورة بأعداد مسنونة'
-                  : 'Traditional authentic remembrances with target cycles'}
-              </p>
-            </div>
+      {/* Arabic Dhikr Selection Drawer/View */}
+      {activeTab === 'adhkar' && (
+        <div className="w-full max-w-lg mx-auto p-4 flex flex-col gap-4 animate-fadeIn">
+          <div className="text-center mb-2">
+            <h2 className="text-2xl font-arabic font-bold text-sukoon-pure drop-shadow-[0_0_15px_rgba(57,169,255,0.4)]">
+              {language === 'ar' ? 'مختارات الأذكار النبوية' : 'Authentic Adhkar Collection'}
+            </h2>
+            <p className="text-xs text-white/50 mt-1">
+              {language === 'ar'
+                ? 'اختر الذكر لتبدأ جلستك المباركة'
+                : 'Select a Dhikr to begin your spiritual focus'}
+            </p>
+          </div>
 
-            <div className="w-full flex flex-col gap-2.5">
-              {adhkarList.map((item) => {
-                const isSelected = item.id === currentDhikr.id;
+          <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
+            {adhkarList.map((item) => {
+              const isSelected = currentDhikr.id === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setDhikr(item)}
+                  className={`flex flex-col p-4 rounded-2xl border transition-all duration-200 text-right cursor-pointer ${
+                    isSelected
+                      ? 'bg-sukoon-electric/20 border-sukoon-glow shadow-[0_0_25px_rgba(22,139,255,0.35)]'
+                      : 'bg-[#071426]/75 border-white/10 hover:border-sukoon-glow/40 hover:bg-[#071426]/90'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-sukoon-glow/15 text-sukoon-glow font-medium">
+                      {item.targetCount} {language === 'ar' ? 'مرة' : 'times'}
+                    </span>
+                    <span className="font-arabic text-xl font-bold text-sukoon-pure">
+                      {item.arabic}
+                    </span>
+                  </div>
 
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setDhikr(item)}
-                    className={`w-full p-4 rounded-2xl border text-right transition cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-[#171713] border-[#C6A66A]/60 shadow-[0_4px_20px_rgba(198,166,106,0.15)]'
-                        : 'bg-[#171713]/50 border-white/5 hover:border-white/10 hover:bg-[#171713]/80'
-                    }`}
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-arabic text-xl sm:text-2xl text-[#E9E2D3] font-normal">
-                        {item.arabic}
-                      </span>
-                      <span className="text-xs text-[#C6A66A] mt-0.5">
-                        {item.transliteration}
-                      </span>
-                    </div>
+                  <p className="text-sukoon-glow/90 text-xs font-medium text-left dir-ltr mt-1">
+                    {item.transliteration}
+                  </p>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono text-[#E9E2D3]/60 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
-                        {item.targetCount}
-                      </span>
-                      {isSelected && (
-                        <span className="w-2 h-2 rounded-full bg-[#C6A66A] shadow-[0_0_8px_#C6A66A]" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
+                  <p className="text-white/60 text-xs text-left dir-ltr mt-0.5 italic">
+                    {item.translation}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-        {/* Tab 3: World Selector */}
-        {activeTab === 'worlds' && (
-          <motion.div
-            key="tab-worlds"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.5 }}
-            className="w-full flex flex-col items-center"
-          >
-            <WorldSelector
-              currentWorld={currentWorld}
-              onSelectWorld={setWorld}
-              lang={language}
-            />
-          </motion.div>
-        )}
-      </div>
+      {/* Worlds Selection Tab */}
+      {activeTab === 'worlds' && (
+        <div className="w-full flex flex-col items-center justify-center my-auto animate-fadeIn">
+          <WorldSelector />
+        </div>
+      )}
     </AppLayout>
   );
 };
-
 export default App;

@@ -1,30 +1,29 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { useAppStore } from '@/store';
 
 export const SukoonLogo: React.FC = () => {
+  const language = useAppStore((state) => state.language);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 1, ease: 'easeOut' }}
-      className="flex flex-col items-center select-none"
-    >
+    <div className="flex flex-col items-center select-none">
       <div className="relative flex items-center justify-center">
-        {/* Subtle breathing ambient halo */}
-        <div className="absolute w-28 h-28 rounded-full bg-[#C6A66A]/10 blur-2xl animate-pulse-slow pointer-events-none" />
-
-        <div className="relative font-arabic text-4xl sm:text-5xl font-normal tracking-wide text-[#E9E2D3] drop-shadow-[0_2px_20px_rgba(198,166,106,0.25)]">
+        {/* Subtle glowing halo */}
+        <div className="absolute w-12 h-12 rounded-full bg-sukoon-electric/25 blur-xl pointer-events-none" />
+        <span className="font-arabic text-3xl sm:text-4xl font-bold tracking-wider text-sukoon-pure drop-shadow-[0_0_15px_rgba(57,169,255,0.6)]">
           سُكُون
-        </div>
+        </span>
       </div>
-
-      <div className="mt-1 flex items-center gap-2">
-        <span className="h-[1px] w-6 bg-gradient-to-r from-transparent to-[#8E6E45]/60" />
-        <span className="text-[10px] uppercase tracking-[0.4em] text-[#C6A66A] font-light">
+      <div className="flex items-center gap-2 mt-0.5">
+        <span className="h-px w-6 bg-gradient-to-r from-transparent to-sukoon-glow/40" />
+        <span className="text-[10px] tracking-[0.3em] font-medium text-sukoon-glow uppercase">
           SUKOON
         </span>
-        <span className="h-[1px] w-6 bg-gradient-to-l from-transparent to-[#8E6E45]/60" />
+        <span className="h-px w-6 bg-gradient-to-l from-transparent to-sukoon-glow/40" />
       </div>
-    </motion.div>
+      <span className="sr-only">
+        {language === 'ar' ? 'سكون - تجربة الذكر التفاعلية' : 'Sukoon - Premium Dhikr Experience'}
+      </span>
+    </div>
   );
 };
+export default SukoonLogo;

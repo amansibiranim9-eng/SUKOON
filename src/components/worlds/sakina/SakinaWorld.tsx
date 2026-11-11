@@ -1,110 +1,143 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useAppStore } from '@/store';
 
 /**
- * SakinaWorld - DARK ORGANIC SERENITY: Sakina
- * Dark olive atmosphere (#777B5A / #141612), soft ivory light (#E9E2D3), slow peaceful floating particles
+ * SakinaWorld: Floating tranquil particles, soft atmospheric wind waves, and serene environmental lighting.
+ * Colors: Deep black (#030407), Midnight blue (#071426), Electric blue (#168BFF), Glowing blue (#39A9FF).
  */
 export const SakinaWorld: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const mountRef = useRef<HTMLDivElement>(null);
+  const interactionIntensity = useAppStore((state) => state.interactionIntensity);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const currentMount = mountRef.current;
+    if (!currentMount) return;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x131511, 0.002);
+    scene.background = new THREE.Color(0x030407);
+    scene.fog = new THREE.FogExp2(0x071426, 0.002);
 
-    const camera = new THREE.PerspectiveCamera(60, width / height, 1, 1000);
-    camera.position.z = 100;
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      1,
+      1000
+    );
+    camera.position.z = 220;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(width, height);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    containerRef.current.appendChild(renderer.domElement);
+    currentMount.appendChild(renderer.domElement);
 
-    // Slow peaceful ivory particles
-    const count = 750;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3);
-    const driftSpeed = new Float32Array(count);
+    // Serene floating particles (nature-like tranquil drift)
+    const particleCount = 700;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particlePhases = new Float32Array(particleCount);
 
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 400;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 400;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 400;
-      driftSpeed[i] = 0.08 + Math.random() * 0.15;
+    for (let i = 0; i < particleCount; i++) {
+      particlePositions[i * 3] = (Math.random() - 0.5) * 500;
+      particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 400;
+      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 350;
+      particlePhases[i] = Math.random() * Math.PI * 2;
     }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
 
-    // Warm ivory light particles (#E9E2D3)
-    const material = new THREE.PointsMaterial({
-      color: 0xe9e2d3,
-      size: 1.8,
+    const particleMat = new THREE.PointsMaterial({
+      color: 0x39a9ff,
+      size: 2.2,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.8,
       blending: THREE.AdditiveBlending,
     });
 
-    const particles = new THREE.Points(geometry, material);
+    const particles = new THREE.Points(particleGeo, particleMat);
     scene.add(particles);
 
-    // Muted olive ambient lighting (#777B5A)
-    const ambientLight = new THREE.AmbientLight(0x23271c, 1.1);
+    // Ambient floating rings representing tranquil soundwaves / wind
+    const ringGeo = new THREE.TorusGeometry(80, 0.4, 16, 100);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x168bff,
+      transparent: true,
+      opacity: 0.2,
+      blending: THREE.AdditiveBlending,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 3;
+    scene.add(ring);
+
+    const ambientLight = new THREE.AmbientLight(0x071426, 1.2);
     scene.add(ambientLight);
 
-    const pointLight = new THREE.PointLight(0xe9e2d3, 1.3, 280);
-    pointLight.position.set(0, 0, 45);
+    const pointLight = new THREE.PointLight(0x168bff, 2, 350);
+    pointLight.position.set(0, 20, 80);
     scene.add(pointLight);
 
     let animationFrameId: number;
-    let clock = 0;
+    let clock = new THREE.Clock();
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-      clock += 0.006;
+      const elapsed = clock.getElapsedTime();
 
-      const pos = geometry.attributes.position.array as Float32Array;
-      for (let i = 0; i < count; i++) {
-        pos[i * 3 + 1] += Math.sin(clock + i) * driftSpeed[i] * 0.2;
-        pos[i * 3] += Math.cos(clock * 0.3 + i) * driftSpeed[i] * 0.1;
+      // Swaying drifting motion
+      const positions = particleGeo.attributes.position.array as Float32Array;
+      for (let i = 0; i < particleCount; i++) {
+        const phase = particlePhases[i];
+        positions[i * 3] += Math.sin(elapsed * 0.8 + phase) * 0.3;
+        positions[i * 3 + 1] += Math.cos(elapsed * 0.5 + phase) * 0.25;
+
+        // Reset if drifted too far
+        if (positions[i * 3 + 1] > 200) positions[i * 3 + 1] = -200;
+        if (positions[i * 3] > 250) positions[i * 3] = -250;
       }
-      geometry.attributes.position.needsUpdate = true;
+      particleGeo.attributes.position.needsUpdate = true;
 
-      particles.rotation.y = clock * 0.01;
+      // Gentle torus rotation
+      ring.rotation.z += 0.002;
+      ring.rotation.y += 0.001;
+
+      // Interaction intensity pulse
+      const intensity = mountRef.current ? Number(mountRef.current.dataset.intensity || 0) : 0;
+      pointLight.intensity = 1.8 + intensity * 3.5;
+      ringMat.opacity = 0.2 + intensity * 0.4;
+
       renderer.render(scene, camera);
     };
+
     animate();
 
     const handleResize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      camera.aspect = w / h;
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
     window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
-      geometry.dispose();
-      material.dispose();
-      renderer.dispose();
-      if (containerRef.current && renderer.domElement) {
-        containerRef.current.removeChild(renderer.domElement);
+      window.removeEventListener('resize', handleResize);
+      if (currentMount && renderer.domElement) {
+        currentMount.removeChild(renderer.domElement);
       }
+      particleGeo.dispose();
+      particleMat.dispose();
+      ringGeo.dispose();
+      ringMat.dispose();
+      renderer.dispose();
     };
   }, []);
 
-  return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-[#131511] via-[#1b1e17] to-[#10120e]"
-    />
-  );
+  useEffect(() => {
+    if (mountRef.current) {
+      mountRef.current.dataset.intensity = interactionIntensity.toString();
+    }
+  }, [interactionIntensity]);
+
+  return <div ref={mountRef} className="absolute inset-0 -z-10 pointer-events-none" />;
 };
+export default SakinaWorld;

@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDhikr } from '@/hooks';
 import { useAppStore } from '@/store';
 
 interface Ripple {
@@ -10,188 +9,211 @@ interface Ripple {
 }
 
 export const DhikrDisplay: React.FC = () => {
-  const { dhikr, count, targetCount, completedCycles, tap, reset } = useDhikr();
-  const language = useAppStore((state) => state.language);
+  const currentDhikr = useAppStore((state) => state.currentDhikr);
+  const session = useAppStore((state) => state.session);
   const dailyTotal = useAppStore((state) => state.dailyTotal);
+  const incrementDhikr = useAppStore((state) => state.incrementDhikr);
+  const resetDhikr = useAppStore((state) => state.resetDhikr);
+  const language = useAppStore((state) => state.language);
+  const decayIntensity = useAppStore((state) => state.decayIntensity);
+
   const [ripples, setRipples] = useState<Ripple[]>([]);
-  const isArabic = language === 'ar';
+  const [isPressing, setIsPressing] = useState(false);
 
-  const progressPercent = targetCount > 0 ? Math.min(100, (count / targetCount) * 100) : 0;
+  // Smooth decay for atmospheric intensity pulse
+  useEffect(() => {
+    const interval = setInterval(() => {
+      decayIntensity();
+    }, 100);
+    return () => clearInterval(interval);
+  }, [decayIntensity]);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const newRipple: Ripple = {
-      id: Date.now() + Math.random(),
-      x,
-      y,
+  // Keyboard accessibility: Space or Enter increments counter exactly once
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        triggerIncrement();
+      }
     };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [incrementDhikr]);
 
-    setRipples((prev) => [...prev.slice(-4), newRipple]);
-    tap();
+  const triggerIncrement = (e?: React.MouseEvent | React.TouchEvent) => {
+    // Exact 1-press = 1-count guarantee
+    incrementDhikr();
+
+    // Trigger ripple animation
+    const id = Date.now() + Math.random();
+    let x = 140;
+    let y = 140;
+    if (e && 'clientX' in e && e.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
+    setRipples((prev) => [...prev.slice(-3), { id, x, y }]);
+    setTimeout(() => {
+      setRipples((prev) => prev.filter((r) => r.id !== id));
+    }, 900);
   };
 
-  const removeRipple = (id: number) => {
-    setRipples((prev) => prev.filter((r) => r.id !== id));
-  };
+  const target = currentDhikr.targetCount || 33;
+  const progressPercent = Math.min(100, Math.round((session.count / target) * 100));
+
+  // Circular progress calculations (Radius = 118, Circumference = 2 * PI * 118 ~= 741.4)
+  const radius = 118;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (circumference * progressPercent) / 100;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center select-none px-4">
-      {/* 1. Clear Arabic Dhikr text with beautiful calligraphy */}
-      <motion.div
-        key={dhikr.id}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-6 max-w-xl mx-auto"
-      >
-        <h2 className="font-arabic text-4xl sm:text-5xl md:text-6xl text-[#E9E2D3] leading-relaxed tracking-wide drop-shadow-[0_4px_24px_rgba(198,166,106,0.15)] font-normal">
-          {dhikr.arabic}
-        </h2>
-        <p className="mt-2 text-sm sm:text-base font-light tracking-wider text-[#C6A66A]">
-          {dhikr.transliteration}
-        </p>
-        <p className="mt-1 text-xs sm:text-sm text-[#E9E2D3]/60 italic font-light max-w-md mx-auto line-clamp-2">
-          "{dhikr.translation}"
-        </p>
-      </motion.div>
-
-      {/* 2. Large Interactive Dhikr Counter Circle */}
-      <div className="relative my-2 sm:my-4 flex items-center justify-center">
-        {/* Subtle breathing ambient glow */}
-        <div className="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-[#C6A66A]/10 blur-3xl pointer-events-none animate-pulse-slow" />
-
-        {/* Outer Circular Progress Ring */}
-        <svg className="w-64 h-64 sm:w-72 sm:h-72 -rotate-90 pointer-events-none">
-          <circle
-            cx="50%"
-            cy="50%"
-            r="120"
-            className="stroke-[#171713]"
-            strokeWidth="3"
-            fill="transparent"
-          />
-          <motion.circle
-            cx="50%"
-            cy="50%"
-            r="120"
-            className="stroke-[#C6A66A]"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="transparent"
-            strokeDasharray={2 * Math.PI * 120}
-            animate={{
-              strokeDashoffset: 2 * Math.PI * 120 * (1 - progressPercent / 100),
-            }}
+    <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto px-4 z-10 select-none">
+      {/* Central Arabic Dhikr Display with smooth transitions */}
+      <div className="text-center mb-6 min-h-[140px] flex flex-col justify-center items-center">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentDhikr.id}
+            initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
-          />
-        </svg>
-
-        {/* Counter Interactive Disc */}
-        <motion.div
-          whileTap={{ scale: 0.96 }}
-          onPointerDown={handlePointerDown}
-          className="absolute w-56 h-56 sm:w-60 sm:h-60 rounded-full bg-gradient-to-b from-[#1c1c17] to-[#12130f] border border-[#C6A66A]/30 shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(233,226,211,0.15)] flex flex-col items-center justify-center cursor-pointer overflow-hidden touch-manipulation active:border-[#C6A66A]/60"
-          role="button"
-          tabIndex={0}
-          aria-label={isArabic ? 'انقر للذكر' : 'Tap for Dhikr'}
-          onKeyDown={(e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-              tap();
-            }
-          }}
-        >
-          {/* Touch Ripples */}
-          <AnimatePresence>
-            {ripples.map((r) => (
-              <motion.span
-                key={r.id}
-                initial={{ scale: 0, opacity: 0.6 }}
-                animate={{ scale: 3.5, opacity: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.75, ease: 'easeOut' }}
-                onAnimationComplete={() => removeRipple(r.id)}
-                style={{
-                  position: 'absolute',
-                  left: r.x,
-                  top: r.y,
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  backgroundColor: 'rgba(198, 166, 106, 0.45)',
-                  boxShadow: '0 0 16px rgba(198, 166, 106, 0.6)',
-                  pointerEvents: 'none',
-                }}
-              />
-            ))}
-          </AnimatePresence>
-
-          {/* Counter Numbers */}
-          <div className="relative z-10 flex flex-col items-center pointer-events-none">
-            <span className="text-xs uppercase tracking-[0.3em] text-[#C6A66A]/80 font-light mb-1">
-              {isArabic ? 'العدد' : 'COUNT'}
-            </span>
-
-            <motion.span
-              key={count}
-              initial={{ scale: 0.85, opacity: 0.7 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="font-mono text-6xl sm:text-7xl font-extralight text-[#E9E2D3] tracking-tight drop-shadow-sm"
-            >
-              {count}
-            </motion.span>
-
-            <span className="text-xs text-[#E9E2D3]/50 font-light tracking-widest mt-1">
-              / {targetCount}
-            </span>
-          </div>
-
-          {/* Tap Prompt Hint */}
-          <span className="absolute bottom-4 text-[10px] uppercase tracking-[0.25em] text-[#C6A66A]/60 font-light pointer-events-none">
-            {isArabic ? 'المس للذكر' : 'TAP TO REMEMBER'}
-          </span>
-        </motion.div>
+            className="flex flex-col items-center"
+          >
+            <h1 className="text-4xl sm:text-5xl font-arabic text-sukoon-pure font-bold tracking-wide leading-relaxed py-1 drop-shadow-[0_0_25px_rgba(57,169,255,0.45)]">
+              {currentDhikr.arabic}
+            </h1>
+            <p className="text-sukoon-glow text-base sm:text-lg font-medium tracking-wider mt-1 opacity-90">
+              {currentDhikr.transliteration}
+            </p>
+            <p className="text-white/60 text-xs sm:text-sm font-light mt-1 max-w-xs text-center italic">
+              &quot;{currentDhikr.translation}&quot;
+            </p>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* 3. Daily Progress & Cycles Indicator */}
-      <div className="mt-4 flex items-center justify-center gap-6 text-xs text-[#E9E2D3]/70 font-light">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#C6A66A] shadow-[0_0_6px_#C6A66A]" />
-          <span>
-            {isArabic ? 'الدورات المكتملة:' : 'Completed Cycles:'}{' '}
-            <strong className="text-[#E9E2D3] font-mono">{completedCycles}</strong>
-          </span>
+      {/* Main Interactive Circular Dhikr Counter Button */}
+      <div className="relative flex items-center justify-center my-2">
+        {/* Animated Particles Orbiting the Counter */}
+        <div className="absolute inset-[-18px] rounded-full pointer-events-none animate-spin" style={{ animationDuration: '28s' }}>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-sukoon-glow shadow-[0_0_12px_#39A9FF]" />
+          <div className="absolute bottom-2 left-1/4 w-1.5 h-1.5 rounded-full bg-sukoon-electric shadow-[0_0_10px_#168BFF]" />
+          <div className="absolute top-1/3 right-1 w-1.5 h-1.5 rounded-full bg-white/80 shadow-[0_0_8px_#ffffff]" />
         </div>
 
-        <div className="h-3 w-[1px] bg-white/10" />
+        {/* Outer Circular SVG Progress Ring */}
+        <svg
+          className="w-72 h-72 sm:w-80 sm:h-80 -rotate-90 pointer-events-none drop-shadow-[0_0_20px_rgba(22,139,255,0.35)]"
+          viewBox="0 0 280 280"
+        >
+          {/* Subtle Track */}
+          <circle
+            cx="140"
+            cy="140"
+            r={radius}
+            stroke="rgba(7, 20, 38, 0.8)"
+            strokeWidth="8"
+            fill="none"
+          />
+          {/* Progress Indicator */}
+          <circle
+            cx="140"
+            cy="140"
+            r={radius}
+            stroke="url(#blue-gradient)"
+            strokeWidth="8"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            fill="none"
+            className="transition-all duration-300 ease-out"
+          />
+          <defs>
+            <linearGradient id="blue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#168BFF" />
+              <stop offset="100%" stopColor="#39A9FF" />
+            </linearGradient>
+          </defs>
+        </svg>
 
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#777B5A]" />
-          <span>
-            {isArabic ? 'مجموع اليوم:' : 'Daily Total:'}{' '}
-            <strong className="text-[#E9E2D3] font-mono">{dailyTotal}</strong>
-          </span>
-        </div>
-
-        {count > 0 && (
-          <>
-            <div className="h-3 w-[1px] bg-white/10" />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                reset();
+        {/* Circular Tap Target Button */}
+        <motion.button
+          onClick={(e) => triggerIncrement(e)}
+          onMouseDown={() => setIsPressing(true)}
+          onMouseUp={() => setIsPressing(false)}
+          onTouchStart={() => setIsPressing(true)}
+          onTouchEnd={() => setIsPressing(false)}
+          animate={{ scale: isPressing ? 0.96 : 1 }}
+          transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+          className="absolute w-56 h-56 sm:w-64 sm:h-64 rounded-full flex flex-col items-center justify-center bg-gradient-to-b from-[#071426]/90 to-[#030407]/95 border border-sukoon-glow/30 backdrop-blur-xl shadow-[0_0_45px_rgba(22,139,255,0.25)] focus:outline-none focus:ring-2 focus:ring-sukoon-glow/50 cursor-pointer overflow-hidden active:shadow-[0_0_65px_rgba(57,169,255,0.5)]"
+          aria-label="Tap to count Dhikr"
+        >
+          {/* Ripple Effects on Press */}
+          {ripples.map((ripple) => (
+            <span
+              key={ripple.id}
+              className="absolute rounded-full pointer-events-none animate-ripple-out bg-sukoon-glow/30"
+              style={{
+                left: ripple.x - 40,
+                top: ripple.y - 40,
+                width: 80,
+                height: 80,
               }}
-              className="text-[#E9E2D3]/50 hover:text-[#C6A66A] transition cursor-pointer text-[11px] underline underline-offset-4"
-            >
-              {isArabic ? 'إعادة ضبط' : 'Reset'}
-            </button>
-          </>
-        )}
+            />
+          ))}
+
+          {/* Subtitle / Counter Label */}
+          <span className="text-white/50 text-xs sm:text-sm font-medium tracking-wider uppercase mb-1">
+            {language === 'ar' ? 'العدد' : 'COUNT'}
+          </span>
+
+          {/* Large Smooth Numerical Counter */}
+          <motion.span
+            key={session.count}
+            initial={{ scale: 0.85, opacity: 0.6 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+            className="text-6xl sm:text-7xl font-bold tracking-tight text-sukoon-pure drop-shadow-[0_0_20px_rgba(255,255,255,0.7)]"
+          >
+            {session.count}
+          </motion.span>
+
+          {/* Target Progress Ratio */}
+          <span className="text-sukoon-glow text-xs sm:text-sm font-light mt-1 opacity-80">
+            / {target}
+          </span>
+
+          {/* Subtle Tap Prompt */}
+          <span className="text-white/30 text-[10px] sm:text-xs font-light mt-3 tracking-widest">
+            {language === 'ar' ? 'المس للذكر' : 'TAP TO REMEMBER'}
+          </span>
+        </motion.button>
+      </div>
+
+      {/* Session Controls & Metrics */}
+      <div className="w-full flex items-center justify-between mt-8 px-4 text-xs sm:text-sm text-white/70">
+        <button
+          onClick={resetDhikr}
+          className="hover:text-sukoon-glow transition-colors duration-200 underline underline-offset-4 active:scale-95 cursor-pointer py-1"
+        >
+          {language === 'ar' ? 'إعادة ضبط' : 'Reset'}
+        </button>
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-white/50">{language === 'ar' ? 'مجموع اليوم:' : 'Daily:'}</span>
+          <span className="font-semibold text-sukoon-pure">{dailyTotal}</span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-white/50">{language === 'ar' ? 'الدورات:' : 'Cycles:'}</span>
+          <span className="font-semibold text-sukoon-glow">{session.completedCycles}</span>
+        </div>
       </div>
     </div>
   );
 };
+export default DhikrDisplay;

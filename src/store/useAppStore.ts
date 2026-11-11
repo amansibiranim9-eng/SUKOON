@@ -4,20 +4,11 @@ import { audioService } from '@/services/audioService';
 
 export const AUTHENTIC_ADHKAR: DhikrItem[] = [
   {
-    id: 'istighfar-basic',
-    arabic: 'أَسْتَغْفِرُ ٱللَّٰهَ',
-    transliteration: 'Astaghfirullah',
-    translation: 'I seek forgiveness from Allah',
-    meaning: 'Turning back to Allah with humility, purity of heart, and peaceful remembrance.',
-    targetCount: 33,
-    category: 'istighfar',
-  },
-  {
     id: 'subhanallah',
     arabic: 'سُبْحَانَ ٱللَّٰهِ',
     transliteration: 'SubhanAllah',
     translation: 'Glory be to Allah',
-    meaning: 'Exalting the perfection of the Creator above any deficiency or imperfection.',
+    meaning: 'Exalting the absolute perfection of Allah above all deficiency and limitation.',
     targetCount: 33,
     category: 'tasbih',
   },
@@ -26,7 +17,7 @@ export const AUTHENTIC_ADHKAR: DhikrItem[] = [
     arabic: 'ٱلْحَمْدُ لِلَّٰهِ',
     transliteration: 'Alhamdulillah',
     translation: 'All praise is due to Allah',
-    meaning: 'Gratitude and sincere praise for continuous blessings and inner contentment.',
+    meaning: 'Eternal gratitude and supreme praise for visible and hidden bounties.',
     targetCount: 33,
     category: 'hamd',
   },
@@ -35,18 +26,54 @@ export const AUTHENTIC_ADHKAR: DhikrItem[] = [
     arabic: 'ٱللَّٰهُ أَكْبَرُ',
     transliteration: 'Allahu Akbar',
     translation: 'Allah is the Greatest',
-    meaning: 'Remembering that God is greater than every worldly concern or anxiety.',
+    meaning: 'Remembering that God is greater than every worldly thought, fear, and circumstance.',
     targetCount: 33,
     category: 'tasbih',
   },
   {
+    id: 'istighfar',
+    arabic: 'أَسْتَغْفِرُ ٱللَّٰهَ',
+    transliteration: 'Astaghfirullah',
+    translation: 'I seek forgiveness from Allah',
+    meaning: 'Turning back to the Merciful with sincerity, peace, and spiritual renewal.',
+    targetCount: 33,
+    category: 'istighfar',
+  },
+  {
+    id: 'la-ilaha-illallah',
+    arabic: 'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ',
+    transliteration: 'La ilaha illa Allah',
+    translation: 'There is no god but Allah',
+    meaning: 'The eternal declaration of Divine Unity and spiritual liberation.',
+    targetCount: 100,
+    category: 'tasbih',
+  },
+  {
     id: 'salawat',
-    arabic: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
-    transliteration: 'Allahumma Salli Ala Muhammad',
-    translation: 'O Allah, send blessings upon Muhammad',
-    meaning: 'Peace, tranquility, and noble blessings upon the Beloved Prophet.',
+    arabic: 'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَىٰ نَبِيِّنَا مُحَمَّدٍ',
+    transliteration: "Allahumma Salli wa Sallim 'ala Nabiyyina Muhammad",
+    translation: 'O Allah, send peace and blessings upon our Prophet Muhammad',
+    meaning: 'Invoking divine light, tranquility, and prayers upon the Messenger of Mercy.',
     targetCount: 10,
     category: 'salawat',
+  },
+  {
+    id: 'adhkar-sabah',
+    arabic: 'أَذْكَارُ الصَّبَاحِ',
+    transliteration: 'Adhkar As-Sabah',
+    translation: 'Morning Remembrances',
+    meaning: 'Divine protection, luminous peace, and barakah to welcome the dawn.',
+    targetCount: 33,
+    category: 'tasbih',
+  },
+  {
+    id: 'adhkar-masa',
+    arabic: 'أَذْكَارُ الْمَسَاءِ',
+    transliteration: 'Adhkar Al-Masa',
+    translation: 'Evening Remembrances',
+    meaning: 'Tranquil sanctuary, gratitude, and spiritual serenity as the night settles.',
+    targetCount: 33,
+    category: 'tasbih',
   },
 ];
 
@@ -61,6 +88,7 @@ interface AppStoreState {
   settings: AppSettings;
   language: 'ar' | 'en';
   activeTab: 'counter' | 'adhkar' | 'worlds';
+  interactionIntensity: number; // dynamically pulses on interactions
   setActiveTab: (tab: 'counter' | 'adhkar' | 'worlds') => void;
   setWorld: (world: WorldType) => void;
   setLanguage: (lang: 'ar' | 'en') => void;
@@ -70,6 +98,7 @@ interface AppStoreState {
   setDhikr: (dhikr: DhikrItem) => void;
   toggleSound: () => void;
   updateSettings: (partial: Partial<AppSettings>) => void;
+  decayIntensity: () => void;
 }
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
@@ -78,6 +107,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   adhkarList: AUTHENTIC_ADHKAR,
   dailyTotal: 0,
   activeTab: 'counter',
+  interactionIntensity: 0,
   session: {
     dhikrId: DEFAULT_DHIKR.id,
     count: 0,
@@ -94,7 +124,10 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
   language: 'ar',
   setActiveTab: (activeTab) => set({ activeTab }),
-  setWorld: (currentWorld) => set({ currentWorld }),
+  setWorld: (currentWorld) => {
+    set({ currentWorld });
+    audioService.setWorldAmbience(currentWorld);
+  },
   setLanguage: (language) => set({ language }),
   toggleLanguage: () =>
     set((state) => ({ language: state.language === 'ar' ? 'en' : 'ar' })),
@@ -118,6 +151,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
     set({
       dailyTotal: state.dailyTotal + 1,
+      interactionIntensity: 1.0,
       session: {
         ...state.session,
         count: isCycleComplete ? 0 : newCount,
@@ -127,6 +161,11 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         lastInteractionAt: Date.now(),
       },
     });
+  },
+  decayIntensity: () => {
+    set((state) => ({
+      interactionIntensity: Math.max(0, state.interactionIntensity * 0.92 - 0.01),
+    }));
   },
   resetDhikr: () =>
     set((state) => ({
