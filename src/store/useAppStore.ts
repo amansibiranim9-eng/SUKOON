@@ -156,8 +156,9 @@ export const useAppStore = create<AppStoreState>()(
       setActiveTab: (activeTab) => set({ activeTab }),
 
       setWorld: (currentWorld) => {
+        const state = get();
         set({ currentWorld });
-        audioService.setWorldAmbience(currentWorld);
+        audioService.setWorldAmbience(currentWorld, state.tier);
       },
 
       setLanguage: (language) => set({ language }),
@@ -172,18 +173,6 @@ export const useAppStore = create<AppStoreState>()(
         const nextCount = currentCount + 1;
         const isCycleComplete = target > 0 && nextCount >= target;
 
-        // Audio & Haptic feedback
-        if (state.settings.soundEnabled) {
-          if (isCycleComplete) {
-            audioService.playSoundEffect('completion');
-          } else {
-            audioService.playSoundEffect('bead');
-          }
-        }
-        if (state.settings.hapticEnabled) {
-          audioService.triggerHaptic(isCycleComplete ? 'completion' : 'light');
-        }
-
         const newCount = isCycleComplete ? 0 : nextCount;
         const newCycles = isCycleComplete
           ? state.session.completedCycles + 1
@@ -192,6 +181,20 @@ export const useAppStore = create<AppStoreState>()(
         const nextRawIntensity = 1.0;
         const easedIntensity = calculateIntensity(nextRawIntensity);
         const nextTier = calculateTier(newCount, target);
+
+        // Audio & Haptic feedback
+        if (state.settings.soundEnabled) {
+          if (isCycleComplete) {
+            audioService.playCompletionClimax();
+          } else {
+            audioService.playTapSound(nextCount, target);
+          }
+          // Dynamically adjust ambient layers based on new tier
+          audioService.updateAmbientLayersForTier(nextTier);
+        }
+        if (state.settings.hapticEnabled) {
+          audioService.triggerHaptic(isCycleComplete ? 'completion' : 'light');
+        }
 
         const todayKey = getTodayKey();
         const updatedTodayCount = (state.dailyHistory[todayKey] || 0) + 1;
@@ -269,12 +272,21 @@ export const useAppStore = create<AppStoreState>()(
         }),
 
       updateSettings: (partial) =>
-        set((state) => ({
-          settings: {
+        set((state) => {
+          const newSettings = {
             ...state.settings,
             ...partial,
-          },
-        })),
+          };
+          if (partial.soundEnabled !== undefined) {
+            audioService.setMuted(!partial.soundEnabled);
+          }
+          if (partial.sfxVolume !== undefined || partial.ambientVolume !== undefined) {
+            audioService.setVolumes(newSettings.sfxVolume, newSettings.ambientVolume);
+          }
+          return {
+            settings: newSettings,
+          };
+        }),
     }),
     {
       name: 'sukoon_app_storage',
