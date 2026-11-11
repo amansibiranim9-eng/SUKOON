@@ -1,35 +1,29 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useAppStore } from '@/store';
+import { setupWorldBase } from '../setupWorldBase';
 
 /**
- * NoorWorld: Luminous celestial moonlight, slow drifting clouds, and subtle stars.
+ * NoorWorld: Luminous celestial moonlight, beam flares at tap point, clouds, Heart Orb, and Sky of Dhikr.
  * Colors: Deep black (#030407), Midnight blue (#071426), Glowing blue (#39A9FF), Pure white (#FFFFFF).
  */
 export const NoorWorld: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   const interactionIntensity = useAppStore((state) => state.interactionIntensity);
+  const tier = useAppStore((state) => state.tier);
+  const completedCycles = useAppStore((state) => state.session.completedCycles);
 
   useEffect(() => {
     const currentMount = mountRef.current;
     if (!currentMount) return;
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x030407);
-    scene.fog = new THREE.FogExp2(0x071426, 0.0018);
+    const base = setupWorldBase(currentMount, {
+      accentColor: 0x39a9ff,
+      glowColor: 0xffffff,
+      initialCompletedCycles: completedCycles,
+    });
 
-    const camera = new THREE.PerspectiveCamera(
-      55,
-      window.innerWidth / window.innerHeight,
-      1,
-      1000
-    );
-    camera.position.z = 240;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    currentMount.appendChild(renderer.domElement);
+    const { scene, camera, renderer, updateBaseVisuals, updatePerformance, getParticleScaleFactor } = base;
 
     // Moonlight celestial sphere
     const moonGeo = new THREE.SphereGeometry(22, 32, 32);
@@ -56,11 +50,11 @@ export const NoorWorld: React.FC = () => {
     scene.add(halo);
 
     // Drifting celestial stars
-    const starCount = 800;
+    const maxStarCount = 800;
     const starGeo = new THREE.BufferGeometry();
-    const starPositions = new Float32Array(starCount * 3);
+    const starPositions = new Float32Array(maxStarCount * 3);
 
-    for (let i = 0; i < starCount; i++) {
+    for (let i = 0; i < maxStarCount; i++) {
       starPositions[i * 3] = (Math.random() - 0.5) * 600;
       starPositions[i * 3 + 1] = (Math.random() - 0.5) * 450;
       starPositions[i * 3 + 2] = (Math.random() - 0.5) * 400;
@@ -78,7 +72,7 @@ export const NoorWorld: React.FC = () => {
     scene.add(stars);
 
     // Atmospheric slow moving clouds (billboards)
-    const cloudCount = 20;
+    const cloudCount = 18;
     const cloudGeo = new THREE.PlaneGeometry(80, 40);
     const cloudMat = new THREE.MeshBasicMaterial({
       color: 0x071426,
@@ -106,9 +100,24 @@ export const NoorWorld: React.FC = () => {
     scene.add(pointLight);
 
     let animationFrameId: number;
+    let isTabVisible = !document.hidden;
+
+    const handleVisibilityChange = () => {
+      isTabVisible = !document.hidden;
+      if (isTabVisible) {
+        animate();
+      } else {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const animate = () => {
+      if (!isTabVisible) return;
       animationFrameId = requestAnimationFrame(animate);
+
+      const delta = updatePerformance(performance.now());
+      updateBaseVisuals(delta);
 
       // Star twinkle and slow rotation
       stars.rotation.y += 0.0003;
@@ -121,10 +130,13 @@ export const NoorWorld: React.FC = () => {
         if (cloud.position.x < -250) cloud.position.x = 250;
       });
 
-      // Subtle light pulse on interaction
-      const intensity = mountRef.current ? Number(mountRef.current.dataset.intensity || 0) : 0;
-      halo.scale.set(1 + intensity * 0.3, 1 + intensity * 0.3, 1);
-      haloMat.opacity = 0.25 + intensity * 0.35;
+      // Reactive pulse
+      const currentIntensity = Number(mountRef.current?.dataset.intensity || 0);
+      halo.scale.set(1 + currentIntensity * 0.35, 1 + currentIntensity * 0.35, 1);
+      haloMat.opacity = 0.25 + currentIntensity * 0.4;
+
+      const scaleFactor = getParticleScaleFactor();
+      starGeo.setDrawRange(0, Math.floor(maxStarCount * scaleFactor));
 
       renderer.render(scene, camera);
     };
@@ -139,12 +151,13 @@ export const NoorWorld: React.FC = () => {
 
     window.addEventListener('resize', handleResize);
 
+    (mountRef.current as unknown as { __base: typeof base }).__base = base;
+
     return () => {
       cancelAnimationFrame(animationFrameId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('resize', handleResize);
-      if (currentMount && renderer.domElement) {
-        currentMount.removeChild(renderer.domElement);
-      }
+
       moonGeo.dispose();
       moonMat.dispose();
       haloGeo.dispose();
@@ -153,15 +166,37 @@ export const NoorWorld: React.FC = () => {
       starMat.dispose();
       cloudGeo.dispose();
       cloudMat.dispose();
-      renderer.dispose();
+      base.dispose();
     };
   }, []);
 
   useEffect(() => {
     if (mountRef.current) {
       mountRef.current.dataset.intensity = interactionIntensity.toString();
+      const base = (mountRef.current as unknown as { __base?: ReturnType<typeof setupWorldBase> }).__base;
+      if (base) {
+        base.setIntensity(interactionIntensity);
+      }
     }
   }, [interactionIntensity]);
+
+  useEffect(() => {
+    if (mountRef.current) {
+      const base = (mountRef.current as unknown as { __base?: ReturnType<typeof setupWorldBase> }).__base;
+      if (base) {
+        base.setTier(tier);
+      }
+    }
+  }, [tier]);
+
+  useEffect(() => {
+    if (mountRef.current) {
+      const base = (mountRef.current as unknown as { __base?: ReturnType<typeof setupWorldBase> }).__base;
+      if (base) {
+        base.updateSkyStars(completedCycles);
+      }
+    }
+  }, [completedCycles]);
 
   return <div ref={mountRef} className="absolute inset-0 -z-10 pointer-events-none" />;
 };
