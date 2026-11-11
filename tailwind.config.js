@@ -12,11 +12,12 @@ export default {
       },
       colors: {
         sukoon: {
-          bg: '#030712',
-          surface: '#0f172a',
-          accent: '#10b981',
-          gold: '#f59e0b',
-          muted: '#94a3b8',
+          bg: '#10110F',
+          dark: '#171713',
+          gold: '#C6A66A',
+          ivory: '#E9E2D3',
+          olive: '#777B5A',
+          bronze: '#8E6E45',
         },
       },
       animation: {

@@ -23,25 +23,25 @@ const worlds: WorldOption[] = [
     id: 'rain',
     titleAr: 'مَطَر',
     titleEn: 'RAIN',
-    subtitleAr: 'أجواء ماطرة هادئة',
-    subtitleEn: 'Dark blue rainy serenity',
-    dotColor: 'bg-sky-400 shadow-[0_0_8px_#38bdf8]',
+    subtitleAr: 'فحم داكن وضياء فضي',
+    subtitleEn: 'Dark charcoal & silver rain',
+    dotColor: 'bg-slate-300 shadow-[0_0_8px_#d1d5db]',
   },
   {
     id: 'noor',
     titleAr: 'نُور',
     titleEn: 'NOOR',
     subtitleAr: 'إشراق ذهبي دافئ',
-    subtitleEn: 'Warm golden radiance',
-    dotColor: 'bg-amber-400 shadow-[0_0_8px_#f59e0b]',
+    subtitleEn: 'Warm golden illumination',
+    dotColor: 'bg-[#C6A66A] shadow-[0_0_8px_#C6A66A]',
   },
   {
     id: 'sakina',
     titleAr: 'سَكِينَة',
     titleEn: 'SAKINA',
-    subtitleAr: 'جسيمات كونية وضاءة',
-    subtitleEn: 'Peaceful drifting calm',
-    dotColor: 'bg-emerald-400 shadow-[0_0_8px_#10b981]',
+    subtitleAr: 'زيتوني هادئ ونور عاجي',
+    subtitleEn: 'Muted olive & ivory peace',
+    dotColor: 'bg-[#E9E2D3] shadow-[0_0_8px_#E9E2D3]',
   },
 ];
 
@@ -54,11 +54,11 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
 
   return (
     <div className="flex flex-col items-center gap-3 w-full max-w-xl mx-auto px-4 select-none">
-      <span className="text-xs uppercase tracking-[0.25em] text-slate-400/80 font-light">
-        {isArabic ? 'اختر الأجواء المحيطة' : 'Atmospheric Worlds'}
+      <span className="text-[11px] uppercase tracking-[0.25em] text-[#C6A66A]/80 font-light">
+        {isArabic ? 'العوالم الروحية' : 'Atmospheric Worlds'}
       </span>
 
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4 w-full">
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5 w-full">
         {worlds.map((world) => {
           const isActive = currentWorld === world.id;
 
@@ -71,8 +71,8 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
               className={cn(
                 'relative flex flex-col items-center justify-center py-3.5 px-2 rounded-2xl border transition-all duration-300 backdrop-blur-md cursor-pointer',
                 isActive
-                  ? 'bg-slate-900/80 border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
-                  : 'bg-slate-950/40 border-white/5 hover:border-white/15 hover:bg-slate-900/40 text-slate-400'
+                  ? 'bg-[#171713]/90 border-[#C6A66A]/60 shadow-[0_4px_24px_rgba(198,166,106,0.18)] text-[#E9E2D3]'
+                  : 'bg-[#10110F]/60 border-white/5 hover:border-white/10 hover:bg-[#171713]/50 text-[#E9E2D3]/60'
               )}
             >
               <div className="flex items-center gap-2 mb-1">
@@ -87,22 +87,22 @@ export const WorldSelector: React.FC<WorldSelectorProps> = ({
                   className={cn(
                     'text-sm font-medium transition-colors',
                     isArabic ? 'font-arabic text-base font-normal' : '',
-                    isActive ? 'text-slate-100 font-semibold' : 'text-slate-300'
+                    isActive ? 'text-[#E9E2D3] font-semibold' : 'text-[#E9E2D3]/70'
                   )}
                 >
                   {isArabic ? world.titleAr : world.titleEn}
                 </span>
               </div>
 
-              <span className="text-[10px] text-slate-400/70 tracking-wide line-clamp-1">
+              <span className="text-[10px] text-[#E9E2D3]/40 tracking-wide line-clamp-1">
                 {isArabic ? world.subtitleAr : world.subtitleEn}
               </span>
 
               {isActive && (
                 <motion.div
                   layoutId="activeWorldIndicator"
-                  className="absolute inset-0 rounded-2xl border border-emerald-400/40 pointer-events-none"
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  className="absolute inset-0 rounded-2xl border border-[#C6A66A]/40 pointer-events-none"
+                  transition={{ type: 'spring', stiffness: 320, damping: 28 }}
                 />
               )}
             </motion.button>
