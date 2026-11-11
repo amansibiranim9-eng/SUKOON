@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store';
 import { visualService } from '@/services/visualService';
+import { Tasbih } from './Tasbih';
 
 interface Ripple {
   id: number;
@@ -133,10 +134,25 @@ export const DhikrDisplay: React.FC = () => {
               {currentDhikr.transliteration}
             </p>
             <p className="text-white/60 text-xs sm:text-sm font-light mt-1 max-w-xs text-center italic">
-              &quot;{currentDhikr.translation}&quot;
+              &quot;
+              {typeof currentDhikr.translation === 'string'
+                ? currentDhikr.translation
+                : language === 'ar'
+                ? currentDhikr.translation.ar
+                : currentDhikr.translation.en}
+              &quot;
             </p>
           </motion.div>
         </AnimatePresence>
+      </div>
+
+      {/* Living Tasbih (String of 33 pearl beads with electric-blue glow) */}
+      <div className="w-full flex justify-center mb-2">
+        <Tasbih
+          count={session.count}
+          targetCount={target}
+          completedCycles={session.completedCycles}
+        />
       </div>
 
       {/* Main Interactive Circular Dhikr Counter Button */}

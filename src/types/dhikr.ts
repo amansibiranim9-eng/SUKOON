@@ -1,11 +1,20 @@
+export type DhikrCategory =
+  | 'istighfar'
+  | 'tasbih'
+  | 'hamd'
+  | 'salawat'
+  | 'morning'
+  | 'evening';
+
 export interface DhikrItem {
   id: string;
   arabic: string;
   transliteration: string;
-  translation: string;
-  meaning: string;
+  translation: string | { ar: string; en: string };
+  meaning?: string;
   targetCount: number;
-  category?: 'istighfar' | 'tasbih' | 'hamd' | 'salawat';
+  category: DhikrCategory;
+  source?: string;
 }
 
 export interface DhikrSession {
